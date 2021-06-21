@@ -9,6 +9,8 @@ class Bot
     public:
         Bot();
 
+        void init();
+
         bool canConnect();
 
         void post(String content);
