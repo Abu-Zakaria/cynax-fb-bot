@@ -1,3 +1,4 @@
+#pragma once
 #include <WString.h>
 
 class Bot
@@ -5,10 +6,9 @@ class Bot
     private:
         const char* access_token;
         const char* page_id;
+        const char* access_token_file_name = "/access_token.txt";
 
     public:
-        Bot();
-
         void init();
 
         bool canConnect();
