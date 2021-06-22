@@ -1,0 +1,2 @@
+#define WIFI_SSID "Enter WiFi ssid"
+#define WIFI_PASSWORD "Enter WiFi password"

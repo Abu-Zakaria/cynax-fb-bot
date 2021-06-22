@@ -1,64 +1,152 @@
-#include <Arduino.h>
 #include "bot.hpp"
 #include <LittleFS.h>
-#include <ArduinoJson.h>
 
 void Bot::init()
 {
     Serial.println("Initializing the bot...");
 
+    connectWifi();
+
+    DynamicJsonDocument data = getMe();
+    String id = data["id"];
+
+    Serial.print("IDDDD");
+    Serial.println(id);
+    page_id = id;
+}
+
+void Bot::connectWifi()
+{
+    Serial.println("connecting wifi..");
     LittleFS.begin();
-    char input_char = 0;
-    String input_str = "";
 
-    File file = LittleFS.open(access_token_file_name, "r");
+    WiFi.mode(WIFI_STA);
 
-    if(file)
+    Serial.print("Wifi ssid: ");
+    Serial.println(WIFI_SSID);
+    Serial.print("Wifi password: ");
+    Serial.println(WIFI_PASSWORD);
+
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+    Serial.print("Connecting WiFi..");
+    while(WiFi.status() != WL_CONNECTED)
     {
-        Serial.print("your page access token is: ");
-        while(file.available())
-        {
-            String line = file.readStringUntil('\n');
-            
-            Serial.println(line);
-        }
+        Serial.print(".");
     }
-    else
-    {
-        Serial.print("Provide access token: ");
 
-        bool break_loop = false;
-        while(!break_loop)
-        {
-            if(Serial.available() > 0)
-            {
-                input_char = Serial.read();
+    Serial.println("");
+    Serial.println("WiFi connected!");
 
-                if(input_char != '\n')
-                {
-                    input_str += input_char;
-                }
-                else
-                {
-                    break_loop = true;
-                    
-                    file = LittleFS.open(access_token_file_name, "w");
-                    String entry = input_str;
-                    file.println(entry);
-                    Serial.print("Entrying: ");
-                    Serial.println(entry);
-                }
-            }
-        }
-    }
+    ip_address = WiFi.localIP();
 }
 
-bool Bot::canConnect()
+void Bot::publishPost(String post_content)
 {
-    return true;
+    Serial.println("Publishing post");
+    if(!page_id)
+    {
+        Serial.println("Page id not found! Call init() to fix this problem");
+    }
+
+    DynamicJsonDocument doc(1024);
+    doc["message"] = post_content;
+    doc["access_token"] = ACCESS_TOKEN;
+
+    urlencode_string(post_content);
+    String req_data = "message=" + post_content + "&access_token=" + ACCESS_TOKEN;
+
+    String uri = String("/") + page_id + String("/feed");
+    String response = post(uri, req_data);
+    Serial.print("Response:");
+    Serial.println(response);
 }
 
-void Bot::post(String content)
+DynamicJsonDocument Bot::getMe()
 {
-    // 
+    String response = get("/me?");
+    Serial.println("response: " + response);
+
+    DynamicJsonDocument doc(256);
+    deserializeJson(doc, response);
+    return doc;
+}
+
+String Bot::post(String uri, String data)
+{
+    String full_uri = String("/bot_http.php?") + data + String("&uri=") + String(api_host) +
+                        String("/") + uri;
+    Serial.println(full_uri);
+
+    String header = String("GET ") + full_uri + " HTTP/1.1\r\n" +
+            "Host: " + bot_host + "\r\n"
+            "Connectin: close\r\n\r\n";
+
+    WiFiClientSecure client;
+    client.setFingerprint(bot_api_fingerprint);
+    Serial.print("fingerprint: ");
+    Serial.println(bot_api_fingerprint);
+    Serial.print("host: ");
+    Serial.println(bot_host);
+    Serial.print("port: ");
+    Serial.println(api_port);
+
+    Serial.print("Preparing request...");
+    while(!client.connect(bot_host, api_port))
+    {
+        Serial.print(".");
+        delay(500);
+    }
+
+    return sendHTTPRequest(header, client);
+}
+
+String Bot::get(const char* uri)
+{
+    String full_uri = String(uri) + "access_token=" + ACCESS_TOKEN;
+    Serial.println(full_uri);
+    String header = String("GET ") + full_uri + " HTTP/1.1\r\n" + 
+                    "Host: " + api_host + "\r\n" +
+                    "Connection: close \r\n\r\n";
+    
+    WiFiClientSecure client;
+    client.setFingerprint(fingerprint);
+    Serial.print("fingerprint: ");
+    Serial.println(fingerprint);
+    Serial.print("host: ");
+    Serial.println(api_host);
+    Serial.print("port: ");
+    Serial.println(api_port);
+
+    Serial.print("Preparing request...");
+    while(!client.connect(api_host, api_port))
+    {
+        Serial.print(".");
+        delay(500);
+    }
+
+    return sendHTTPRequest(header, client);
+}
+
+String Bot::sendHTTPRequest(String header, WiFiClientSecure client)
+{
+    client.print(header);
+
+    while(client.connected())
+    {
+        String line = client.readStringUntil('\n');
+        if(line == "\r")
+        {
+            // reponse header received
+            break;
+        }
+    }
+
+    String line = "";
+    while(client.available())
+    {
+        line += client.readStringUntil('\n');
+    }
+
+    return line;
 }
