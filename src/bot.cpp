@@ -10,8 +10,6 @@ void Bot::init()
     DynamicJsonDocument data = getMe();
     String id = data["id"];
 
-    Serial.print("IDDDD");
-    Serial.println(id);
     page_id = id;
 }
 
