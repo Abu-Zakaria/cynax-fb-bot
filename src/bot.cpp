@@ -77,8 +77,8 @@ String Bot::post(String uri, String data)
     Serial.println(full_uri);
 
     String header = String("GET ") + full_uri + " HTTP/1.1\r\n" +
-            "Host: " + bot_host + "\r\n"
-            "Connectin: close\r\n\r\n";
+            "Host: " + bot_host + "\r\n" +
+            "Connection: close\r\n\r\n";
 
     WiFiClientSecure client;
     client.setFingerprint(bot_api_fingerprint);
@@ -93,7 +93,7 @@ String Bot::post(String uri, String data)
     while(!client.connect(bot_host, api_port))
     {
         Serial.print(".");
-        delay(500);
+        delay(1000);
     }
 
     return sendHTTPRequest(header, client);
@@ -147,4 +147,9 @@ String Bot::sendHTTPRequest(String header, WiFiClientSecure client)
     }
 
     return line;
+}
+
+const char* Bot::getBotFingerprint()
+{
+    return bot_api_fingerprint;
 }

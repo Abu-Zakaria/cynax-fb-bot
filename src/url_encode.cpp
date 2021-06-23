@@ -27,4 +27,6 @@ void urlencode_string(String &str)
     str.replace("]", "%5D");
     str.replace("^", "%5E");
     str.replace("_", "%5F");
+
+    str.replace("linebreak", "%0A");
 }

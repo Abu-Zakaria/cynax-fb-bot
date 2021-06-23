@@ -20,7 +20,6 @@ class Bot
         const char* bot_api_fingerprint = "60 01 09 58 34 0C 5A 93 C6 77 78 73 A4 EC 30 41 AB 4B 14 EA";
         IPAddress ip_address;
 
-        String sendHTTPRequest(String header, WiFiClientSecure client);
     public:
         void init();
 
@@ -33,4 +32,8 @@ class Bot
         String post(String uri, String content);
 
         String get(const char* uri);
+
+        String sendHTTPRequest(String header, WiFiClientSecure client);
+
+        const char* getBotFingerprint();
 };
